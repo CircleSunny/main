@@ -134,102 +134,88 @@
     </div>
     <script src="./js/jquery.min.js"></script>
     <script>
-        var flag = true
-            //用户名验证
-        $(".name").blur(function() {
-            checkName()
-
-        })
-
-        function checkName() {
-            $.ajax({
-                type: "get",
-                url: "server/validateUsername.php",
-                data: "name=" + $(".name").val(),
-                dataType: "json",
-                beforeSend: function() {
-                    if ($(".name").val().trim() == '') {
-                        $(".tips p").fadeIn(1000).delay(2000).fadeOut(1000).html("用户名不能为空")
-                    }
-                },
-                success: function(result) {
-                    if (result && result.code == 0) {
-                        $(".tips p").fadeIn(1000).delay(2000).fadeOut(1000).html(result.msg)
-                    }
-                }
-            })
-        }
-
-        //验证码验证
+        //1.验证码.
         $(".verify").click(function() {
-            // checkCode()
-            var count = 5
-            var timer = setInterval(function() {
-                $(".verify").val(`${count}秒之后重新获取`)
-                count--
-                if (count < 0) {
-                    $(".verify").val("重新获取")
-                    $(".verify").removeClass("disabled")
-
-                    clearInterval(timer)
+                if ($(this).hasClass("disabled")) { //说明还在请求中 就不能再次让用户触发请求了
+                    return false
                 }
-            }, 1000)
-            if ($(".verify").hasClass("disabled")) {
-                return
-            }
-            $.ajax({
-                type: "post",
-                url: "server/getCode.php",
-                data: null,
-                dataType: "json",
-                success: function(result) {
-                    console.log(result)
-                },
-                beforeSend: function() {
-                    var reg = /^1\d{10}$/
-                    var phone = $(".mobile").val()
-                    if (!reg.test(phone)) {
-                        $(".tips p").fadeIn(1000).delay(2000).fadeOut(1000).html("请输入正确的手机号")
-                    } else {
-                        $(".verify").addClass("disabled")
+                $.ajax({
+                    url: "server/getCode.php",
+                    beforeSend: function() {
+                        var reg = /^1\d{10}$/
+                        var phone = $(".mobile").val()
+                        if (!reg.test(phone)) {
+                            $(".tips p").fadeIn(1000).delay(2000).fadeOut(1000)
+                            $(".tips p").html("请输入正确的手机号")
+                            return false
+                        } else {
+                            $(".verify").addClass("disabled") //点击之后 成功发送请求之前
+                        }
+                    },
+                    success: function(res) {
+                        console.log(res)
+                        $(".verify").removeClass("disabled")
+
                     }
-                },
+                })
             })
+            //用户名
+        $(".name").on("blur", function() {
+                $.ajax({
+                    type: "get",
+                    url: "server/validateUsername.php",
+                    data: "name=" + $(".name").val(),
+                    dataType: "json",
+                    beforeSend: function() {
+                        if ($(".name").val().trim() == '') {
+                            $(".tips p").fadeIn(1000).delay(2000).fadeOut(1000)
+                            $(".tips p").html("请输入用户名")
+                        }
+                    },
+                    success: function(res) {
+                        if (res && res.code == 0) {
+                            $(".tips p").fadeIn(1000).delay(2000).fadeOut(1000)
+                            $(".tips p").html(res.msg)
+                        }
+                    }
+                })
+            })
+            //提交
 
 
-
-
-        })
-
-        // function checkCode() {
-
-        // }
-        //提交事件
-        $(".submit").click(function() {
-            if ($(".submit").hasClass("disabled")) {
+        $(".submit").on("click", function() {
+            if ($(this).hasClass("disabled")) {
                 return false
             }
-            var data = $("#ajaxForm").serialize()
+            var str = $("#ajaxForm").serialize()
             $.ajax({
                 type: "post",
                 url: "server/register.php",
+                data: str,
                 dataType: "json",
-                data: data,
-                success: function(result) {
-                    console.log(result.msg)
-                    $(".submit").removeClass("disabled")
-                },
                 beforeSend: function() {
                     if ($(".name").val() == "" || $(".pass").val() == "" || $(".mobile").val() == "") {
                         $(".tips p").fadeIn(1000).delay(2000).fadeOut(1000).html("请输入完整信息")
                         return false
                     } else {
-                        $(".submit").addClass("disabled")
+                        $(".submit").addClass("disabled");
+                        $(".submit").val("正在注册中")
                     }
+                },
+                success: function(res) {
+                    if (res && res.code == 1) {
+                        $(".tips p").fadeIn(1000).delay(2000).fadeOut(1000).html(res.msg)
+                        $(".submit").removeClass("disabled");
+                        $(".submit").val("注册")
+                        $()
+                    }
+                },
+                complete: function() {
+                    $("#ajaxForm")[0].reset()
                 }
             })
         })
     </script>
 </body>
 
-</html>\
+</html>
